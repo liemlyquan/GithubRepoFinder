@@ -17,7 +17,9 @@ class RepoResultsViewController: UIViewController, UITableViewDataSource, UITabl
     var searchSettings = GithubRepoSearchSettings()
 
     var repos: [GithubRepo]!
-
+    
+    var starLimit = 100
+    
     override func viewDidLoad() {
         super.viewDidLoad()
       
@@ -47,24 +49,38 @@ class RepoResultsViewController: UIViewController, UITableViewDataSource, UITabl
         GithubRepo.fetchRepos(searchSettings, successCallback: { (newRepos) -> Void in
             self.repos = newRepos
             self.tableView.reloadData()
-            // Print the returned repositories to the output window
-            for repo in newRepos {
-                print(repo)
-            }   
-
             MBProgressHUD.hideHUDForView(self.view, animated: true)
             }, error: { (error) -> Void in
                 print(error)
         })
     }
   
+    override func prepareForSegue(segue: UIStoryboardSegue, sender: AnyObject?) {
+        let settingVC = (segue.destinationViewController as! UINavigationController).viewControllers[0] as! SettingViewController
+        settingVC.starLimit = self.starLimit
+    }
+    
+    @IBAction func saveUnwind(sender: UIStoryboardSegue) {
+        let sourceVC = sender.sourceViewController as! SettingViewController
+        
+        if sourceVC.starLimit != self.starLimit {
+            self.starLimit = sourceVC.starLimit
+            self.searchSettings.minStars = self.starLimit
+            print(self.searchSettings.minStars)
+            self.doSearch()
+        }
+    }
+    
+    @IBAction func cancelUnwind(sender: UIStoryboardSegue) {
+        // nothing
+    }
+    
   func tableView(tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
     if let repos = repos {
       return repos.count
     } else {
       return 0
     }
-
   }
   
   func tableView(tableView: UITableView, cellForRowAtIndexPath indexPath: NSIndexPath) -> UITableViewCell {
@@ -73,7 +89,7 @@ class RepoResultsViewController: UIViewController, UITableViewDataSource, UITabl
     cell.repoNameLabel.text = repo.name!
     cell.starCountLabel.text = "\(repo.stars!)"
     cell.forkCountLabel.text = "\(repo.forks!)"
-    cell.ownerNameLabel.text = repo.ownerHandle!
+    cell.ownerNameLabel.text = "by \(repo.ownerHandle!)"
     cell.avatarImageView.setImageWithURL(NSURL(string: repo.ownerAvatarURL!)!)
     cell.descriptionLabel.text = repo.repoDescription!
     return cell
